@@ -43,6 +43,45 @@ chain = prompt | llm
 result = chain.invoke({"topic": "artificial intelligence"})
 ```
 
+### Project Architecture Evolution
+
+```
+🍽️ Project 1: Restaurant Suggester
+    ↓
+📚 Project 2: Wikipedia Agent  
+    ↓
+🌐 Project 3: SerpAPI Agent
+    ↓
+🧠 Project 4: Memory Agent
+    ↓
+🔄 Project 5: Combined System
+
+┌─────────────────────┐    ┌─────────────────────┐
+│ Simple Prompt + LLM │ ──→ │ 🍽️ Restaurant      │
+└─────────────────────┘    │   Suggester        │
+                           └─────────────────────┘
+                                      ↓
+┌─────────────────────┐    ┌─────────────────────┐
+│ LLM + External API  │ ──→ │ 📚 Wikipedia       │
+└─────────────────────┘    │   Agent            │
+                           └─────────────────────┘
+                                      ↓
+┌─────────────────────┐    ┌─────────────────────┐
+│ LLM + Real-time     │ ──→ │ 🌐 SerpAPI         │
+│ Data                │    │   Agent            │
+└─────────────────────┘    └─────────────────────┘
+                                      ↓
+┌─────────────────────┐    ┌─────────────────────┐
+│ LLM + Conversation  │ ──→ │ 🧠 Memory          │
+│ Memory              │    │   Agent            │
+└─────────────────────┘    └─────────────────────┘
+                                      ↓
+┌─────────────────────┐    ┌─────────────────────┐
+│ Intelligent Agent   │ ──→ │ 🔄 Combined        │
+│ Router              │    │   System           │
+└─────────────────────┘    └─────────────────────┘
+```
+
 ## 🍽️ Project 1: Restaurant Name Suggester
 
 Let's start with a simple restaurant name suggester to understand LangChain basics.
@@ -92,6 +131,24 @@ def suggest_restaurant_names(cuisine_type, atmosphere):
     })
     
     return response.content
+```
+
+### Architecture Diagram
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   User Input    │───→│ Prompt Template │───→│ LangChain Chain │
+│ Cuisine +       │    │ {cuisine_type}  │    │  prompt | llm   │
+│ Atmosphere      │    │ {atmosphere}    │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                        │
+                                                        ▼
+┌─────────────────┐    ┌─────────────────┐
+│ Creative Names  │◄───│   OpenAI GPT    │
+│    Output       │    │ temperature=0.7 │
+└─────────────────┘    └─────────────────┘
+
+Flow: Input → Template → Chain → LLM → Creative Output
 ```
 
 ### Key Learning Points
@@ -145,6 +202,35 @@ def ask_with_wikipedia(question: str) -> str:
     return response.content
 ```
 
+### Architecture Diagram
+
+```
+┌─────────────────┐
+│ User Question   │
+└─────────┬───────┘
+          ▼
+┌─────────────────┐    ┌─────────────────┐
+│ Wikipedia Search│───→│ Wikipedia API   │
+│WikipediaQueryRun│    │   Raw Data      │
+└─────────────────┘    └─────────┬───────┘
+          │                      ▼
+          │            ┌─────────────────┐
+          │            │Response Process │
+          │            │Truncate 500char│
+          │            └─────────┬───────┘
+          ▼                      ▼
+┌─────────────────┐    ┌─────────────────┐
+│ Error Handling  │───→│  LLM Synthesis  │
+│   Graceful      │    │   ChatOpenAI    │
+│   Fallback      │    └─────────┬───────┘
+└─────────────────┘              ▼
+                        ┌─────────────────┐
+                        │Formatted Answer │
+                        └─────────────────┘
+
+Flow: Question → Wikipedia → Process → LLM → Answer
+```
+
 ### Key Learning Points
 
 1. **Tool Integration**: LangChain provides wrappers for external APIs
@@ -192,6 +278,37 @@ def ask_with_search(question: str) -> str:
     
     response = llm.invoke(prompt)
     return response.content
+```
+
+### Architecture Diagram
+
+```
+┌─────────────────┐
+│   User Query    │
+│Current Info Need│
+└─────────┬───────┘
+          ▼
+┌─────────────────┐    ┌─────────────────┐
+│  SerpAPI Search │───→│Web Search Result│
+│ SerpAPIWrapper  │    │ Real-time Data  │
+└─────────────────┘    └─────────┬───────┘
+          ▲                      ▼
+          │            ┌─────────────────┐
+┌─────────────────┐    │Result Processing│
+│ API Rate Limits │    │Raw to Structured│
+│ Error Handling  │    └─────────┬───────┘
+└─────────────────┘              ▼
+          │            ┌─────────────────┐
+          └───────────→│  LLM Analysis   │
+                       │   ChatOpenAI    │
+                       └─────────┬───────┘
+                                 ▼
+                       ┌─────────────────┐
+                       │ Current Answer  │
+                       │Up-to-date Info │
+                       └─────────────────┘
+
+Flow: Query → SerpAPI → Process → LLM → Current Answer
 ```
 
 ### Key Learning Points
@@ -267,6 +384,57 @@ AI:"""
     # Save to memory
     memory.save_context({"input": question}, {"output": answer})
     return answer
+```
+
+### Architecture Diagram
+
+```
+┌─────────────────┐
+│   User Input    │
+└─────────┬───────┘
+          ▼
+┌─────────────────┐
+│  Memory Check   │
+│  get_context()  │
+└─────────┬───────┘
+          ▼
+     ┌─────────┐
+     │Has      │
+     │Context? │
+     └────┬────┘
+      Yes │ No
+    ┌─────▼─────┐         ┌─────────────────┐
+    │Build      │         │ Simple Prompt   │
+    │Contextual │         │ Current Only    │
+    │Prompt     │         └─────────┬───────┘
+    └─────┬─────┘                   │
+          └─────────┬─────────────────┘
+                    ▼
+          ┌─────────────────┐
+          │ LLM Processing  │
+          │   ChatOpenAI    │
+          └─────────┬───────┘
+                    ▼
+          ┌─────────────────┐
+          │Generate Response│
+          └─────────┬───────┘
+                    ▼
+          ┌─────────────────┐    ┌─────────────────┐
+          │Save to Memory   │───→│ Memory Buffer   │
+          │save_context()   │    │Sliding Window   │
+          └─────────────────┘    │    (k=5)        │
+                    │            └─────────────────┘
+                    ▼                      ▲
+          ┌─────────────────┐              │
+          │ Return Answer   │              │
+          └─────────────────┘              │
+                                          │
+                              ┌─────────────────┐
+                              │Memory Management│
+                              │  Auto-cleanup   │
+                              └─────────────────┘
+
+Flow: Input → Memory Check → Context Decision → LLM → Save → Answer
 ```
 
 ### Key Learning Points
@@ -360,6 +528,52 @@ def intelligent_agent(question: str) -> str:
     return answer
 ```
 
+### Interactive Architecture Diagram
+
+```mermaid
+flowchart TD
+    A["User Question"] --> B["Query Analysis<br/>intelligent_agent()"]
+    B --> C{"Query Type?"}
+    
+    C -->|"what is, who was, explain"| D["📚 Wikipedia Route"]
+    C -->|"current, latest, weather"| E["🌐 SerpAPI Route"]
+    C -->|"conversational"| F["🧠 Memory Route"]
+    
+    D --> G["Wikipedia Search<br/>WikipediaQueryRun"]
+    E --> H["Web Search<br/>SerpAPIWrapper"]
+    F --> I["Context Retrieval<br/>SimpleMemory"]
+    
+    G --> J["Wikipedia Data"]
+    H --> K["Real-time Data"]
+    I --> L["Conversation Context"]
+    
+    J --> M["LLM Processing<br/>ChatOpenAI"]
+    K --> M
+    L --> M
+    
+    M --> N["Generated Response"]
+    N --> O["Save to Memory<br/>All Routes"]
+    O --> P["Final Answer"]
+    
+    Q["Error Handling<br/>Graceful Fallback"] --> D
+    Q --> E
+    Q --> F
+    
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style D fill:#e1f5fe
+    style E fill:#e8f5e8
+    style F fill:#fce4ec
+    style G fill:#f1f8e9
+    style H fill:#f1f8e9
+    style I fill:#f1f8e9
+    style M fill:#ffecb3
+    style O fill:#c8e6c9
+    style P fill:#a5d6a7
+    style Q fill:#ffcdd2
+```
+
 ### Key Features
 
 1. **Intelligent Routing**: Automatically selects the best agent for each query
@@ -444,6 +658,47 @@ python interactive_demo.py
 - **Memory**: Conversation state management
 - **Chains**: Component composition and execution
 
+### Complete System Architecture
+
+```mermaid
+graph TB
+    subgraph "🍽️ Project 1: Restaurant Suggester"
+        A1["Prompt Template"] --> A2["LLM"] --> A3["Creative Names"]
+    end
+    
+    subgraph "📚 Project 2: Wikipedia Agent"
+        B1["Query"] --> B2["Wikipedia API"] --> B3["LLM Synthesis"] --> B4["Factual Answer"]
+    end
+    
+    subgraph "🌐 Project 3: SerpAPI Agent"
+        C1["Search Query"] --> C2["SerpAPI"] --> C3["LLM Processing"] --> C4["Current Info"]
+    end
+    
+    subgraph "🧠 Project 4: Memory Agent"
+        D1["User Input"] --> D2["Memory Context"] --> D3["LLM + History"] --> D4["Contextual Response"]
+        D4 --> D5["Update Memory"]
+        D5 --> D2
+    end
+    
+    subgraph "🔄 Project 5: Combined System"
+        E1["User Query"] --> E2["Query Router"]
+        E2 --> E3["Wikipedia Agent"]
+        E2 --> E4["SerpAPI Agent"]
+        E2 --> E5["Memory Agent"]
+        E3 --> E6["Unified Memory"]
+        E4 --> E6
+        E5 --> E6
+        E6 --> E7["Final Response"]
+    end
+    
+    style A1 fill:#e1f5fe
+    style B2 fill:#f3e5f5
+    style C2 fill:#e8f5e8
+    style D2 fill:#fff3e0
+    style E2 fill:#fce4ec
+    style E6 fill:#f1f8e9
+```
+
 ### Evolution of Complexity
 
 1. **Basic Chain**: `Prompt | LLM`
@@ -452,6 +707,25 @@ python interactive_demo.py
 4. **Agent Routing**: `Query Analysis + Tool Selection + Response`
 
 ### Memory System Design
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant M as Memory System
+    participant L as LLM
+    participant S as Storage
+    
+    U->>M: User Input
+    M->>S: get_context()
+    S-->>M: Previous Conversations
+    M->>L: Contextual Prompt
+    L-->>M: Generated Response
+    M->>S: save_context(input, output)
+    S->>S: Sliding Window (k=5)
+    M-->>U: Final Answer
+    
+    Note over S: Memory Structure<br/>{"conversations": [<br/>{"input": "question", "output": "answer"}<br/>]}
+```
 
 ```python
 # Memory Flow
